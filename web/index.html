@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make 24</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Make 24</h1>
+  <nav>
+    <button id="tab-single" class="tab active">Single</button>
+    <button id="tab-deck" class="tab">Deck</button>
+    <button id="tab-solve" class="tab">Solver</button>
+    <a id="tab-online" class="tab" href="multiplayer/index.html">Play Online</a>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= SINGLE ================= -->
+  <section id="single" class="mode">
+    <div class="bar">
+      <span>uniform over the 1362 solvable sets</span>
+      <span class="timer" id="s-timer">0.00</span>
+    </div>
+    <div class="cards" id="s-cards"></div>
+    <input id="s-input" class="answer" autocomplete="off" spellcheck="false"
+           placeholder="type an expression, Enter to submit  ·  Esc = give up">
+    <div class="msg" id="s-msg"></div>
+
+    <div class="stats">
+      <table id="s-stats">
+        <tr><th></th><th>current</th><th>best</th></tr>
+        <tr><td>single</td><td id="st-cur">–</td><td id="st-best">–</td></tr>
+        <tr><td>mo3</td><td id="mo3-cur">–</td><td id="mo3-best">–</td></tr>
+        <tr><td>ao5</td><td id="ao5-cur">–</td><td id="ao5-best">–</td></tr>
+        <tr><td>ao12</td><td id="ao12-cur">–</td><td id="ao12-best">–</td></tr>
+        <tr><td>mean (all)</td><td id="mean-cur">–</td><td id="mean-n">–</td></tr>
+      </table>
+      <div class="hist-head">
+        <span>history</span>
+        <button id="s-clear" class="mini">clear</button>
+      </div>
+      <ol id="s-hist" class="hist"></ol>
+    </div>
+  </section>
+
+  <!-- ================= DECK ================= -->
+  <section id="deck" class="mode hidden">
+    <div class="bar">
+      <button id="d-start">start deck</button>
+      <span id="d-progress">–</span>
+      <span class="timer" id="d-timer">0.00</span>
+    </div>
+    <div class="cards" id="d-cards"></div>
+    <input id="d-input" class="answer" autocomplete="off" spellcheck="false"
+           placeholder="expression + Enter  ·  type u + Enter to mark unsolvable" disabled>
+    <div class="msg" id="d-msg"></div>
+    <ol id="d-splits" class="hist"></ol>
+    <div id="d-result" class="result"></div>
+
+    <div class="stats">
+      <table>
+        <tr><th></th><th>current</th><th>best</th></tr>
+        <tr><td>deck</td><td id="d-cur">–</td><td id="d-best">–</td></tr>
+        <tr><td>mo3</td><td id="d-mo3">–</td><td id="d-mo3b">–</td></tr>
+        <tr><td>ao5</td><td id="d-ao5">–</td><td id="d-ao5b">–</td></tr>
+        <tr><td>ao12</td><td id="d-ao12">–</td><td id="d-ao12b">–</td></tr>
+        <tr><td>mean (all)</td><td id="d-mean">–</td><td id="d-n">–</td></tr>
+        <tr><td>per set</td><td id="d-per">–</td><td id="d-split-best">–</td></tr>
+      </table>
+      <div class="hist-head">
+        <span>past decks</span>
+        <button id="d-clear" class="mini">clear</button>
+      </div>
+      <ol id="d-hist" class="hist"></ol>
+    </div>
+  </section>
+  <!-- ================= SOLVER ================= -->
+  <section id="solve" class="mode hidden">
+    <div class="bar"><span>enter four cards — A J Q K or 1..13, any separator</span></div>
+    <input id="v-input" class="answer" autocomplete="off" spellcheck="false"
+           placeholder="e.g.  1 5 5 5   or   A K Q 2" value="1 5 5 5">
+    <div class="msg" id="v-msg"></div>
+    <div id="v-cards" class="cards"></div>
+    <div id="v-strategy" class="result"></div>
+    <ol id="v-list" class="hist"></ol>
+  </section>
+</main>
+
+<footer>
+  <details>
+    <summary>rules &amp; input</summary>
+    <ul>
+      <li>Use each of the 4 cards exactly once with <code>+ - * /</code> and parentheses to make 24. Fractions allowed: <code>(5-1/5)*5</code>.</li>
+      <li>A = 1, J = 11, Q = 12, K = 13. Type letters or numbers.</li>
+      <li><b>Single</b>: per-set timer, mo3 / ao5 / ao12 (olympic average: drop best and worst) and overall mean.</li>
+      <li><b>Deck</b>: 52 shuffled cards, 13 sets, one total time. Mark impossible sets with <code>u</code>. Your time counts only if every set you marked really is unsolvable.</li>
+    </ul>
+  </details>
+</footer>
+
+<script src="solutions.js"></script>
+<script src="canonical.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

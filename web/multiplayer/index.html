@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make 24 — Online</title>
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="mp-style.css">
+</head>
+<body>
+<header>
+  <h1>Make 24 — Online</h1>
+  <nav>
+    <a class="tab" href="../index.html">Back to practice</a>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= LOBBY ================= -->
+  <section id="lobby" class="mode">
+    <div class="mp-panel">
+      <h2>Create a room</h2>
+      <div class="mp-form">
+        <label>Your name <input id="c-name" class="answer" maxlength="20" placeholder="you"></label>
+        <label>Room type
+          <select id="c-public">
+            <option value="public">Public (anyone can join)</option>
+            <option value="private">Private (join by code)</option>
+          </select>
+        </label>
+        <label>Scoring
+          <select id="c-mode">
+            <option value="single-point">Single point — first correct wins the round</option>
+            <option value="multi-point">Multi-point — leader banks extra points until caught up</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="c-face" checked> Include face cards (J Q K)</label>
+        <label id="c-roomname-wrap">Room name <input id="c-roomname" class="answer" maxlength="30" placeholder="my room"></label>
+        <button id="c-create">Create room</button>
+      </div>
+    </div>
+
+    <div class="mp-panel">
+      <h2>Join a private room</h2>
+      <div class="mp-form mp-form-row">
+        <input id="j-code" class="answer" maxlength="8" placeholder="ROOM CODE" style="text-transform:uppercase">
+        <button id="j-join">Join</button>
+      </div>
+    </div>
+
+    <div class="mp-panel">
+      <h2>Public rooms</h2>
+      <button id="l-refresh" class="mini">refresh</button>
+      <ol id="l-rooms" class="hist"></ol>
+    </div>
+
+    <div class="msg" id="lobby-msg"></div>
+  </section>
+
+  <!-- ================= ROOM ================= -->
+  <section id="room" class="mode hidden">
+    <div class="bar">
+      <span id="r-code"></span>
+      <span id="r-status" class="mp-status"></span>
+      <span class="timer" id="r-timer">0.00</span>
+    </div>
+    <div class="mp-scores" id="r-scores"></div>
+    <div class="cards" id="r-cards"></div>
+    <input id="r-input" class="answer" autocomplete="off" spellcheck="false"
+           placeholder="type an expression, Enter to submit" disabled>
+    <div class="msg" id="r-msg"></div>
+    <div id="r-log" class="hist"></div>
+  </section>
+</main>
+
+<script src="../../shared/make24-core.js"></script>
+<script src="mp-app.js"></script>
+</body>
+</html>

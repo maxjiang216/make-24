@@ -1,0 +1,15 @@
+name = "make24-server"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDurableObject"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "LobbyDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RoomDurableObject", "LobbyDurableObject"]

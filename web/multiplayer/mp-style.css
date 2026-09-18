@@ -1,0 +1,14 @@
+.mp-panel {
+  border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 20px;
+}
+.mp-panel h2 { margin: 0 0 12px; font-size: 15px; color: var(--dim); font-weight: 600; }
+.mp-form { display: flex; flex-direction: column; gap: 10px; }
+.mp-form-row { flex-direction: row; }
+.mp-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--dim); }
+.mp-form input, .mp-form select { font: inherit; }
+.mp-form select { padding: 8px 10px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; }
+.mp-status { color: var(--dim); font: 13px ui-monospace, monospace; }
+.mp-scores { display: flex; justify-content: space-between; gap: 16px; margin: 8px 0; font: 16px ui-monospace, monospace; }
+.mp-scores .you { color: var(--accent); }
+#l-rooms li { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+#l-rooms button { padding: 2px 10px; font-size: 12px; }
