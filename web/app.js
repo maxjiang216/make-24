@@ -427,6 +427,34 @@ const addParts = (n) => (n.op === '+' || n.op === '-' ? [n.pos, n.neg] : [[n.key
 const mulParts = (n) => (n.op === '*' || n.op === '/' ? [n.num, n.den] : [[n.key], []]);
 const bag = (tag, a, b) => `${tag}[${[...a].sort()}|${[...b].sort()}]`;
 
+// Same flattening as addParts/mulParts, but keeping the child nodes so the
+// class representative can be rebuilt (see canonDisp).
+const addNodes = (n) => (n.op === '+' || n.op === '-' ? [n.posN, n.negN] : [[n], []]);
+const mulNodes = (n) => (n.op === '*' || n.op === '/' ? [n.numN, n.denN] : [[n], []]);
+
+// Standard written form of a class: for a sum, added terms first then subtracted
+// terms, each group sorted by value from largest to smallest; products likewise
+// (multiplied factors, then divisors). Applied recursively to every subexpression.
+// Ties in value fall back to the text so the choice is deterministic.
+const cmpRat = (a, b) => a.n * b.d - b.n * a.d;
+function canonDisp(n) {
+  if (!n.op) return n.disp;
+  const additive = n.op === '+' || n.op === '-';
+  const order = (list) => list
+    .map((c) => ({ v: c.v, s: wrap(c, additive), t: canonDisp(c) }))
+    .sort((x, y) => cmpRat(y.v, x.v) || (x.t < y.t ? -1 : x.t > y.t ? 1 : 0))
+    .map((c) => c.s);
+  const [up, down] = additive ? [n.posN, n.negN] : [n.numN, n.denN];
+  const [plus, minus] = additive ? ['+', '-'] : ['*', '/'];
+  return order(up).join(plus) + order(down).map((s) => minus + s).join('');
+}
+// Children of a flattened sum are never sums, so they need no parens;
+// children of a flattened product need parens only when they are sums.
+function wrap(c, parentAdditive) {
+  const s = canonDisp(c);
+  return !parentAdditive && (c.op === '+' || c.op === '-') ? `(${s})` : s;
+}
+
 function leaf(n) {
   return { v: rat(n), op: null, disp: String(n), key: 'L' + n };
 }
@@ -449,11 +477,17 @@ function join(a, b, op) {
     node.pos = op === '+' ? [...ap, ...bp] : [...ap, ...bn];
     node.neg = op === '+' ? [...an, ...bn] : [...an, ...bp];
     node.key = bag('A', node.pos, node.neg);
+    const [aP, aN] = addNodes(a), [bP, bN] = addNodes(b);
+    node.posN = op === '+' ? [...aP, ...bP] : [...aP, ...bN];
+    node.negN = op === '+' ? [...aN, ...bN] : [...aN, ...bP];
   } else {
     const [an2, ad] = mulParts(a), [bn2, bd] = mulParts(b);
     node.num = op === '*' ? [...an2, ...bn2] : [...an2, ...bd];
     node.den = op === '*' ? [...ad, ...bd] : [...ad, ...bn2];
     node.key = bag('M', node.num, node.den);
+    const [aU, aD] = mulNodes(a), [bU, bD] = mulNodes(b);
+    node.numN = op === '*' ? [...aU, ...bU] : [...aU, ...bD];
+    node.denN = op === '*' ? [...aD, ...bD] : [...aD, ...bU];
   }
   return node;
 }
@@ -461,12 +495,14 @@ function join(a, b, op) {
 // explores both operand orders for + and *, so a class lists all its written forms.
 function solveClasses(values) {
   const classes = new Map(); // key -> Set of display strings
+  const lead = new Map(); // key -> standard written form
   const walk = (nodes) => {
     if (nodes.length === 1) {
       const n = nodes[0];
       if (n.v.d === 1 && n.v.n === 24) {
         if (!classes.has(n.key)) classes.set(n.key, new Set());
         classes.get(n.key).add(n.disp);
+        if (!lead.has(n.key)) lead.set(n.key, canonDisp(n));
       }
       return;
     }
@@ -483,8 +519,12 @@ function solveClasses(values) {
   };
   walk(values.map(leaf));
   const byLen = (a, b) => a.length - b.length || a.localeCompare(b);
-  return [...classes.values()]
-    .map((set) => [...set].sort(byLen))
+  // Representative first, then the other written forms.
+  return [...classes]
+    .map(([k, set]) => {
+      const rep = lead.get(k);
+      return [rep, ...[...set].filter((f) => f !== rep).sort(byLen)];
+    })
     .sort((a, b) => byLen(a[0], b[0]));
 }
 
