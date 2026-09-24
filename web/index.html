@@ -11,16 +11,16 @@
 <header>
   <h1>Make 24</h1>
   <nav>
-    <button id="tab-single" class="tab active">Single</button>
+    <button id="tab-single" class="tab">Single</button>
     <button id="tab-deck" class="tab">Deck</button>
-    <button id="tab-solve" class="tab">Solver</button>
+    <button id="tab-solve" class="tab active">Solver</button>
     <a id="tab-online" class="tab" href="multiplayer/index.html">Play Online</a>
   </nav>
 </header>
 
 <main>
   <!-- ================= SINGLE ================= -->
-  <section id="single" class="mode">
+  <section id="single" class="mode hidden">
     <div class="bar">
       <span>uniform over the 1362 solvable sets</span>
       <span class="timer" id="s-timer">0.00</span>
@@ -79,7 +79,7 @@
     </div>
   </section>
   <!-- ================= SOLVER ================= -->
-  <section id="solve" class="mode hidden">
+  <section id="solve" class="mode">
     <div class="bar">
       <button id="v-mode-check" class="tab active">solvable?</button>
       <button id="v-mode-all" class="tab">all solutions</button>
