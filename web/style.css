@@ -76,5 +76,9 @@ summary { cursor: pointer; }
 #v-list summary b { color: var(--fg); font-weight: 600; }
 .equiv { margin: 4px 0 6px; padding-left: 18px; list-style: circle; }
 #v-list { max-height: none; }
-#v-list > li.fam { border-left: 2px solid var(--accent); padding-left: 8px; }
-#v-list > li.fam-first, #v-list > li.fam-solo { margin-top: 8px; }
+#v-list > li { position: relative; padding: 3px 0 3px 10px; }
+#v-list > li.gap-after { margin-bottom: 10px; }
+#v-list > li::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(rgb(122 162 247 / var(--up)), rgb(122 162 247 / calc((var(--up) + var(--down)) / 2)) 50%, rgb(122 162 247 / var(--down)));
+}
