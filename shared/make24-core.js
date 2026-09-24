@@ -120,8 +120,17 @@ const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
 // of terms, multiplicative nodes to a (numerator, denominator) multiset of factors — so
 // 2*3*4/1, 2/1*3*4 and 3*2*(4/1) collapse to one, as do 6*6-6-6 and 6*6-(6+6), and
 // (per the multiplayer equivalence spec) 3+4-4 / 3-4+4 and 3*2/2 / 3/2*2 collapse too.
-const addParts = (n) => (n.op === '+' || n.op === '-' ? [n.pos, n.neg] : [[n.key], []]);
-const mulParts = (n) => (n.op === '*' || n.op === '/' ? [n.num, n.den] : [[n.key], []]);
+// Flattened operands of a sum (added, subtracted) or product (multiplied, divided).
+// Children are kept as nodes so the representative can be rebuilt from them.
+const addNodes = (n) => (n.op === '+' || n.op === '-' ? [n.posN, n.negN] : [[n], []]);
+const mulNodes = (n) => (n.op === '*' || n.op === '/' ? [n.numN, n.denN] : [[n], []]);
+const keyOf = (n) => n.key;
+// Subtracting 0 is the same as adding it, and dividing by 1 the same as multiplying
+// by it: 6*4/1 ~ 6*4*1 and 6*4/(2-1) ~ 6*4*(2-1).
+function moveNeutral(up, down, id) {
+  const keep = down.filter((c) => !(c.v.d === 1 && c.v.n === id));
+  return [[...up, ...down.filter((c) => !keep.includes(c))], keep];
+}
 const bag = (tag, a, b) => `${tag}[${[...a].sort()}|${[...b].sort()}]`;
 
 function leaf(n) {
@@ -142,15 +151,17 @@ function buildJoin(a, b, op, allowNegative) {
 
   const node = { v, op, disp: `${side(a)}${op}${rhs(b)}` };
   if (op === '+' || op === '-') {
-    const [ap, an] = addParts(a), [bp, bn] = addParts(b);
-    node.pos = op === '+' ? [...ap, ...bp] : [...ap, ...bn];
-    node.neg = op === '+' ? [...an, ...bn] : [...an, ...bp];
-    node.key = bag('A', node.pos, node.neg);
+    const [aP, aN] = addNodes(a), [bP, bN] = addNodes(b);
+    [node.posN, node.negN] = moveNeutral(
+      op === '+' ? [...aP, ...bP] : [...aP, ...bN],
+      op === '+' ? [...aN, ...bN] : [...aN, ...bP], 0);
+    node.key = bag('A', node.posN.map(keyOf), node.negN.map(keyOf));
   } else {
-    const [an2, ad] = mulParts(a), [bn2, bd] = mulParts(b);
-    node.num = op === '*' ? [...an2, ...bn2] : [...an2, ...bd];
-    node.den = op === '*' ? [...ad, ...bd] : [...ad, ...bn2];
-    node.key = bag('M', node.num, node.den);
+    const [aU, aD] = mulNodes(a), [bU, bD] = mulNodes(b);
+    [node.numN, node.denN] = moveNeutral(
+      op === '*' ? [...aU, ...bU] : [...aU, ...bD],
+      op === '*' ? [...aD, ...bD] : [...aD, ...bU], 1);
+    node.key = bag('M', node.numN.map(keyOf), node.denN.map(keyOf));
   }
   return node;
 }
@@ -260,7 +271,7 @@ function canonicalizeExpr(src) {
 return {
   gcd, rat, R,
   parseExpr, checkAnswer, key4,
-  PREC, addParts, mulParts, bag, leaf, join, joinAny, solveAll,
+  PREC, addNodes, mulNodes, moveNeutral, bag, leaf, join, joinAny, solveAll,
   canonicalizeExpr,
 };
 
