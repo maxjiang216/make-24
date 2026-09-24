@@ -32,7 +32,9 @@ No build step. Serve the folder:
   (same tree up to commutativity, associativity and inverses; dividing by something equal
   to 1 counts as multiplying by it, e.g. `/1` ~ `*1`), shown in a standard form:
   added terms then subtracted terms, each largest value first (same for `*` then `/`),
-  applied at every level. Expand a row to see every
+  applied at every level. Related classes (differ by swapping two equal-valued pieces, or
+  reduce to the same expression once a +0 or ×1 piece is dropped) are listed together,
+  joined by a bar. Expand a row to see every
   written form in that class. Also shows the set's canonical strategy label.
 
 Input accepts `+ - * /`, parentheses, and `A J Q K` (or `1 11 12 13`). Fractions are

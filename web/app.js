@@ -478,7 +478,7 @@ function join(a, b, op) {
   const rhs = (c) =>
     c.op && PREC[c.op] <= PREC[op] && (op === '-' || op === '/') ? `(${c.disp})` : side(c);
 
-  const node = { v, op, disp: `${side(a)}${op}${rhs(b)}` };
+  const node = { v, op, a, b, disp: `${side(a)}${op}${rhs(b)}` };
   if (op === '+' || op === '-') {
     const [aP, aN] = addNodes(a), [bP, bN] = addNodes(b);
     [node.posN, node.negN] = moveNeutral(
@@ -496,9 +496,63 @@ function join(a, b, op) {
 }
 // Group every expression for 24 by equivalence class. Unlike the in-game search this
 // explores both operand orders for + and *, so a class lists all its written forms.
+// Rebuild a tree after replacing some subtrees (Map old node -> new node).
+// Returns null if the result would divide by zero or go negative.
+function rebuild(n, repl) {
+  if (repl.has(n)) return repl.get(n);
+  if (!n.op) return n;
+  const a = rebuild(n.a, repl), b = rebuild(n.b, repl);
+  return a && b ? join(a, b, n.op) : null;
+}
+const subtrees = (n, acc = []) => {
+  acc.push(n);
+  if (n.op) { subtrees(n.a, acc); subtrees(n.b, acc); }
+  return acc;
+};
+const eqRat = (x, y) => x.n === y.n && x.d === y.d;
+const isVal = (n, k) => n.v.d === 1 && n.v.n === k;
+
+// Links between classes that a person would likely see as variations of each other.
+// These don't merge classes, they only decide which classes are listed next to each other.
+//  - swap: exchanging two equal-valued pieces turns one into the other (9*6/2-3 ~ 9*3-6/2)
+//  - core: dropping a piece that adds 0 or multiplies by 1 leaves the same expression
+//    (6*4*1*1, 6*4+1-1 and (6+1-1)*4 all reduce to 6*4)
+function relatedLinks(trees, union) {
+  const cores = new Map(); // core key -> class key
+  for (const t of trees) {
+    const all = subtrees(t);
+    for (let i = 0; i < all.length; i++) {
+      const x = all[i], xs = subtrees(x);
+      for (let j = i + 1; j < all.length; j++) {
+        const y = all[j];
+        if (xs.includes(y) || subtrees(y).includes(x) || !eqRat(x.v, y.v)) continue;
+        const u = rebuild(t, new Map([[x, y], [y, x]]));
+        if (u) union(t.key, u.key);
+      }
+      if (!x.op) continue;
+      const drop = [];
+      if (x.op === '+' || x.op === '*') {
+        const id = x.op === '+' ? 0 : 1;
+        if (isVal(x.a, id)) drop.push(x.b);
+        if (isVal(x.b, id)) drop.push(x.a);
+      } else if (isVal(x.b, x.op === '-' ? 0 : 1)) drop.push(x.a);
+      for (const keep of drop) {
+        const core = rebuild(t, new Map([[x, keep]]));
+        if (!core) continue;
+        if (cores.has(core.key)) union(t.key, cores.get(core.key));
+        else cores.set(core.key, t.key);
+      }
+    }
+  }
+}
+
+// Group every expression for 24 by equivalence class. Unlike the in-game search this
+// explores both operand orders for + and *, so a class lists all its written forms.
+// Returns families of related classes; each class is [representative, ...other forms].
 function solveClasses(values) {
   const classes = new Map(); // key -> Set of display strings
   const lead = new Map(); // key -> standard written form
+  const trees = [];
   const walk = (nodes) => {
     if (nodes.length === 1) {
       const n = nodes[0];
@@ -506,6 +560,7 @@ function solveClasses(values) {
         if (!classes.has(n.key)) classes.set(n.key, new Set());
         classes.get(n.key).add(n.disp);
         if (!lead.has(n.key)) lead.set(n.key, canonDisp(n));
+        trees.push(n);
       }
       return;
     }
@@ -521,14 +576,26 @@ function solveClasses(values) {
     }
   };
   walk(values.map(leaf));
+
+  const parent = new Map([...classes.keys()].map((k) => [k, k]));
+  const find = (k) => (parent.get(k) === k ? k : find(parent.get(k)));
+  const union = (x, y) => {
+    if (parent.has(x) && parent.has(y)) parent.set(find(x), find(y));
+  };
+  relatedLinks(trees, union);
+
   const byLen = (a, b) => a.length - b.length || a.localeCompare(b);
-  // Representative first, then the other written forms.
-  return [...classes]
-    .map(([k, set]) => {
-      const rep = lead.get(k);
-      return [rep, ...[...set].filter((f) => f !== rep).sort(byLen)];
-    })
-    .sort((a, b) => byLen(a[0], b[0]));
+  const fams = new Map();
+  for (const [k, set] of classes) {
+    const rep = lead.get(k);
+    const forms = [rep, ...[...set].filter((f) => f !== rep).sort(byLen)];
+    const r = find(k);
+    if (!fams.has(r)) fams.set(r, []);
+    fams.get(r).push(forms);
+  }
+  return [...fams.values()]
+    .map((f) => f.sort((a, b) => byLen(a[0], b[0])))
+    .sort((a, b) => byLen(a[0][0], b[0][0]));
 }
 
 // Input: "1 2 3 4", "1,2,3,4", or "1234". With separators each token is a card
@@ -573,7 +640,8 @@ function runSolver() {
     return;
   }
 
-  const classes = solveClasses(vals);
+  const families = solveClasses(vals);
+  const classes = families.flat();
   if (!classes.length) {
     strat.innerHTML = '<span style="color:var(--bad)">unsolvable</span>';
     return;
@@ -582,8 +650,11 @@ function runSolver() {
   const total = classes.reduce((t, c) => t + c.length, 0);
   strat.innerHTML = `<span style="color:var(--ok)">${classes.length} distinct solution${classes.length === 1 ? '' : 's'}</span>` +
     ` (${total} written forms)` + (canon ? `  ·  canonical strategy: <b>${canon}</b>` : '');
-  for (const forms of classes) {
+  for (const fam of families) for (const [idx, forms] of fam.entries()) {
     const li = document.createElement('li');
+    // Related classes sit together, joined by a bar on the left.
+    if (fam.length > 1) li.className = 'fam' + (idx === 0 ? ' fam-first' : '') + (idx === fam.length - 1 ? ' fam-last' : '');
+    else li.className = 'fam-solo';
     if (forms.length === 1) {
       li.textContent = forms[0];
     } else {
