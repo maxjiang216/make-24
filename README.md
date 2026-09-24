@@ -29,7 +29,10 @@ No build step. Serve the folder:
 - **Solver**: type four cards as `1 2 3 4`, `1,2,3,4`, or `1234` (no separator means one
   character per card; `0` = 10, `A T J Q K` also work, so `j0q3` is 11 10 12 3).
   "solvable?" only says yes/no. "all solutions" lists one row per equivalence class
-  (same tree up to commutativity, associativity and inverses); expand a row to see every
+  (same tree up to commutativity, associativity and inverses; dividing by something equal
+  to 1 counts as multiplying by it, e.g. `/1` ~ `*1`), shown in a standard form:
+  added terms then subtracted terms, each largest value first (same for `*` then `/`),
+  applied at every level. Expand a row to see every
   written form in that class. Also shows the set's canonical strategy label.
 
 Input accepts `+ - * /`, parentheses, and `A J Q K` (or `1 11 12 13`). Fractions are
