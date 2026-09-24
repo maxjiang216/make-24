@@ -26,9 +26,17 @@ No build step. Serve the folder:
   for a set you believe is unsolvable; the run is valid only if every set you marked
   really is unsolvable.
 
-- **Solver**: type any four cards and get every solution that is distinct as a tree —
-  results are deduped up to commutativity, associativity and inverses, so `2*3*4/1`,
-  `2/1*3*4` and `3*2*(4/1)` count once. Shows the set's canonical strategy label.
+- **Solver**: type four cards as `1 2 3 4`, `1,2,3,4`, or `1234` (no separator means one
+  character per card; `0` = 10, `A T J Q K` also work, so `j0q3` is 11 10 12 3).
+  "solvable?" only says yes/no. "all solutions" lists one row per equivalence class
+  (same tree up to commutativity, associativity and inverses); expand a row to see every
+  written form in that class. Also shows the set's canonical strategy label.
 
 Input accepts `+ - * /`, parentheses, and `A J Q K` (or `1 11 12 13`). Fractions are
 exact, so `(5-1/5)*5` is accepted.
+
+## Deploying to Vercel
+
+Import the repo in Vercel with the default settings (framework preset "Other", no build
+command, root directory = repo root). `vercel.json` rewrites `/` and every path to `web/`,
+so the app is served at the site root and `multiplayer/` can still load `/shared/`.

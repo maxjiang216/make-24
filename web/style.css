@@ -27,7 +27,7 @@ button {
 }
 button:hover { border-color: var(--accent); }
 .tab.active { background: var(--accent); color: #10131a; border-color: var(--accent); }
-a.tab { text-decoration: none; display: inline-block; }
+a.tab { text-decoration: none; display: inline-block; color: var(--fg); }
 .mini { padding: 2px 8px; font-size: 12px; }
 main { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
 .mode.hidden { display: none; }
@@ -71,3 +71,8 @@ td:not(:first-child) { font-family: ui-monospace, monospace; }
 footer { max-width: 720px; margin: 0 auto; padding: 0 20px 40px; color: var(--dim); font-size: 13px; }
 footer code { background: var(--panel); padding: 1px 4px; border-radius: 4px; }
 summary { cursor: pointer; }
+.dim { color: var(--dim); }
+#solve .bar { flex-wrap: wrap; margin-bottom: 12px; font-size: 13px; }
+#v-list summary b { color: var(--fg); font-weight: 600; }
+.equiv { margin: 4px 0 6px; padding-left: 18px; list-style: circle; }
+#v-list { max-height: none; }

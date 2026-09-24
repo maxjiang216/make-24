@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Make 24</title>
+<meta name="description" content="Make 24 card game: practice, deck runs, solver, online play.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -79,9 +80,13 @@
   </section>
   <!-- ================= SOLVER ================= -->
   <section id="solve" class="mode hidden">
-    <div class="bar"><span>enter four cards — A J Q K or 1..13, any separator</span></div>
+    <div class="bar">
+      <button id="v-mode-check" class="tab active">solvable?</button>
+      <button id="v-mode-all" class="tab">all solutions</button>
+      <span>1 2 3 4 · 1,2,3,4 · 1234 — 0 = 10, J Q K = 11 12 13</span>
+    </div>
     <input id="v-input" class="answer" autocomplete="off" spellcheck="false"
-           placeholder="e.g.  1 5 5 5   or   A K Q 2" value="1 5 5 5">
+           placeholder="e.g.  1555   or   j0q3   or   1 12 13 2" value="1555">
     <div class="msg" id="v-msg"></div>
     <div id="v-cards" class="cards"></div>
     <div id="v-strategy" class="result"></div>

@@ -457,64 +457,119 @@ function join(a, b, op) {
   }
   return node;
 }
-function solveAll(values, cap = 400) {
-  const out = new Map();
+// Group every expression for 24 by equivalence class. Unlike the in-game search this
+// explores both operand orders for + and *, so a class lists all its written forms.
+function solveClasses(values) {
+  const classes = new Map(); // key -> Set of display strings
   const walk = (nodes) => {
-    if (out.size >= cap) return;
     if (nodes.length === 1) {
       const n = nodes[0];
-      if (n.v.d === 1 && n.v.n === 24 && !out.has(n.key)) out.set(n.key, n.disp);
+      if (n.v.d === 1 && n.v.n === 24) {
+        if (!classes.has(n.key)) classes.set(n.key, new Set());
+        classes.get(n.key).add(n.disp);
+      }
       return;
     }
     for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
+      for (let j = 0; j < nodes.length; j++) {
+        if (i === j) continue;
         const rest = nodes.filter((_, k) => k !== i && k !== j);
         for (const op of ['+', '-', '*', '/']) {
-          for (const [a, b] of [[nodes[i], nodes[j]], [nodes[j], nodes[i]]]) {
-            const m = join(a, b, op);
-            if (m) walk([...rest, m]);
-            if (op === '+' || op === '*') break; // commutative, one order is enough
-          }
+          const m = join(nodes[i], nodes[j], op);
+          if (m) walk([...rest, m]);
         }
       }
     }
   };
   walk(values.map(leaf));
-  return [...out.values()].sort((a, b) => a.length - b.length || a.localeCompare(b));
+  const byLen = (a, b) => a.length - b.length || a.localeCompare(b);
+  return [...classes.values()]
+    .map((set) => [...set].sort(byLen))
+    .sort((a, b) => byLen(a[0], b[0]));
+}
+
+// Input: "1 2 3 4", "1,2,3,4", or "1234". With separators each token is a card
+// (1..13, 0 = 10, A/T/J/Q/K). Without, each character is one card.
+const CARD_CHARS = { A: 1, T: 10, J: 11, Q: 12, K: 13, 0: 10 };
+function parseCards(raw) {
+  const s = raw.trim().toUpperCase();
+  if (!s) return { vals: [], err: 'enter four cards' };
+  const tokens = /[\s,]/.test(s) ? s.split(/[\s,]+/).filter(Boolean) : [...s];
+  const vals = [];
+  for (const t of tokens) {
+    let v = CARD_CHARS[t] ?? (/^\d+$/.test(t) ? +t : NaN);
+    if (!(v >= 1 && v <= 13)) return { vals, err: `"${t}" is not a card (use 1-13, 0 = 10, A T J Q K)` };
+    vals.push(v);
+  }
+  if (vals.length !== 4) return { vals, err: `need exactly 4 cards, got ${vals.length}` };
+  return { vals, err: null };
 }
 
 const vInput = document.getElementById('v-input');
 const vMsg = document.getElementById('v-msg');
+let vMode = 'check';
 function runSolver() {
-  const raw = vInput.value.toUpperCase().match(/10|1[0-3]|[1-9]|[AJQKT]/g) || [];
-  const map = { A: 1, T: 10, J: 11, Q: 12, K: 13 };
-  const vals = raw.map((t) => map[t] ?? +t);
+  const { vals, err } = parseCards(vInput.value);
   const list = document.getElementById('v-list');
   const strat = document.getElementById('v-strategy');
   list.innerHTML = '';
   strat.textContent = '';
-  if (vals.length !== 4) {
-    vMsg.textContent = `need exactly 4 cards, got ${vals.length}`;
+  if (err) {
+    vMsg.textContent = err;
     vMsg.className = 'msg bad';
     document.getElementById('v-cards').innerHTML = '';
     return;
   }
   vMsg.textContent = '';
   renderCards(document.getElementById('v-cards'), vals.map((v, i) => ({ v, suit: SUITS[i] })));
-  const sols = solveAll(vals);
-  const key = key4(vals);
-  const canon = typeof CANONICAL !== 'undefined' ? CANONICAL[key] : null;
-  if (!sols.length) {
+
+  if (vMode === 'check') {
+    strat.innerHTML = isSolvable(vals)
+      ? '<span style="color:var(--ok)">solvable</span>'
+      : '<span style="color:var(--bad)">unsolvable</span>';
+    return;
+  }
+
+  const classes = solveClasses(vals);
+  if (!classes.length) {
     strat.innerHTML = '<span style="color:var(--bad)">unsolvable</span>';
     return;
   }
-  strat.innerHTML = `<span style="color:var(--ok)">${sols.length} distinct solution${sols.length === 1 ? '' : 's'}</span>` +
-    (canon ? `  ·  canonical strategy: <b>${canon}</b>` : '');
-  for (const s of sols) {
+  const canon = typeof CANONICAL !== 'undefined' ? CANONICAL[key4(vals)] : null;
+  const total = classes.reduce((t, c) => t + c.length, 0);
+  strat.innerHTML = `<span style="color:var(--ok)">${classes.length} distinct solution${classes.length === 1 ? '' : 's'}</span>` +
+    ` (${total} written forms)` + (canon ? `  ·  canonical strategy: <b>${canon}</b>` : '');
+  for (const forms of classes) {
     const li = document.createElement('li');
-    li.textContent = s;
+    if (forms.length === 1) {
+      li.textContent = forms[0];
+    } else {
+      const det = document.createElement('details');
+      const sum = document.createElement('summary');
+      sum.innerHTML = `<b></b> <span class="dim">+${forms.length - 1} equivalent</span>`;
+      sum.firstChild.textContent = forms[0];
+      det.appendChild(sum);
+      const ul = document.createElement('ul');
+      ul.className = 'equiv';
+      for (const f of forms.slice(1)) {
+        const e = document.createElement('li');
+        e.textContent = f;
+        ul.appendChild(e);
+      }
+      det.appendChild(ul);
+      li.appendChild(det);
+    }
     list.appendChild(li);
   }
+}
+for (const m of ['check', 'all']) {
+  document.getElementById('v-mode-' + m).addEventListener('click', () => {
+    vMode = m;
+    document.getElementById('v-mode-check').classList.toggle('active', m === 'check');
+    document.getElementById('v-mode-all').classList.toggle('active', m === 'all');
+    runSolver();
+    vInput.focus();
+  });
 }
 vInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSolver(); });
 vInput.addEventListener('input', runSolver);
