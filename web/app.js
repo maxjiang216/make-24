@@ -409,6 +409,8 @@ function show(which) {
   }
   document.getElementById(MODES[which] + '-input').focus();
   if (which === 'solve') runSolver();
+  // Deal the first Single set on first visit, so its timer doesn't run in the background.
+  if (which === 'single' && !S.cards.length) sDeal();
 }
 for (const m in MODES) document.getElementById('tab-' + m).addEventListener('click', () => show(m));
 
@@ -618,4 +620,4 @@ vInput.addEventListener('input', runSolver);
 /* boot */
 sRender();
 dRenderStats();
-sDeal();
+show('solve');
