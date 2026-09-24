@@ -463,7 +463,7 @@ function wrap(c, parentAdditive) {
 }
 
 function leaf(n) {
-  return { v: rat(n), op: null, disp: String(n), key: 'L' + n };
+  return { v: rat(n), op: null, disp: String(n), key: 'L' + n, cards: [n] };
 }
 function join(a, b, op) {
   let v;
@@ -478,7 +478,10 @@ function join(a, b, op) {
   const rhs = (c) =>
     c.op && PREC[c.op] <= PREC[op] && (op === '-' || op === '/') ? `(${c.disp})` : side(c);
 
-  const node = { v, op, a, b, disp: `${side(a)}${op}${rhs(b)}` };
+  const node = {
+    v, op, a, b, cards: [...a.cards, ...b.cards].sort((x, y) => x - y),
+    disp: `${side(a)}${op}${rhs(b)}`,
+  };
   if (op === '+' || op === '-') {
     const [aP, aN] = addNodes(a), [bP, bN] = addNodes(b);
     [node.posN, node.negN] = moveNeutral(
@@ -494,8 +497,6 @@ function join(a, b, op) {
   }
   return node;
 }
-// Group every expression for 24 by equivalence class. Unlike the in-game search this
-// explores both operand orders for + and *, so a class lists all its written forms.
 // Rebuild a tree after replacing some subtrees (Map old node -> new node).
 // Returns null if the result would divide by zero or go negative.
 function rebuild(n, repl) {
@@ -509,46 +510,132 @@ const subtrees = (n, acc = []) => {
   if (n.op) { subtrees(n.a, acc); subtrees(n.b, acc); }
   return acc;
 };
-const eqRat = (x, y) => x.n === y.n && x.d === y.d;
+const valKey = (n) => `${n.v.n}/${n.v.d}`;
 const isVal = (n, k) => n.v.d === 1 && n.v.n === k;
 
-// Links between classes that a person would likely see as variations of each other.
-// These don't merge classes, they only decide which classes are listed next to each other.
-//  - swap: exchanging two equal-valued pieces turns one into the other (9*6/2-3 ~ 9*3-6/2)
-//  - core: dropping a piece that adds 0 or multiplies by 1 leaves the same expression
-//    (6*4*1*1, 6*4+1-1 and (6+1-1)*4 all reduce to 6*4)
-function relatedLinks(trees, union) {
-  const cores = new Map(); // core key -> class key
+// Distance between two classes: the number of cards touched by the smallest change
+// that turns one into the other. Changes that count:
+//  - substitute: rebuild one piece from the same cards to the same value
+//    (8*(5-4/2) ~ 8*(5+2-4): the 3 is made from 2, 4, 5 either way; 3 cards)
+//  - swap: exchange two pieces of equal value (9*6/2-3 ~ 9*3-6/2; 3 cards)
+//  - pad: the same expression with a +0 or *1 piece attached elsewhere
+//    (6*4*1*1 ~ 6*4+1-1; 2 cards)
+// Classes with no such link are unrelated. This only affects display order.
+function classDistances(trees) {
+  const dist = new Map(); // "k1|k2" -> cards touched
+  const link = (k1, k2, cost) => {
+    if (k1 === k2) return;
+    const id = k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`;
+    if (!(dist.get(id) <= cost)) dist.set(id, cost);
+  };
+  // Every piece that appears in some solution, by (cards, value).
+  const pieces = new Map();
+  for (const t of trees) {
+    for (const x of subtrees(t)) {
+      if (!x.op || x === t) continue;
+      const id = `${x.cards}|${valKey(x)}`;
+      if (!pieces.has(id)) pieces.set(id, new Map());
+      pieces.get(id).set(x.key, x);
+    }
+  }
+  const cores = new Map(); // core key -> Map(class key -> cards dropped)
   for (const t of trees) {
     const all = subtrees(t);
     for (let i = 0; i < all.length; i++) {
-      const x = all[i], xs = subtrees(x);
+      const x = all[i];
+      if (x.op && x !== t) {
+        for (const y of pieces.get(`${x.cards}|${valKey(x)}`).values()) {
+          if (y.key === x.key) continue;
+          const u = rebuild(t, new Map([[x, y]]));
+          if (u) link(t.key, u.key, x.cards.length);
+        }
+      }
+      const xs = subtrees(x);
       for (let j = i + 1; j < all.length; j++) {
         const y = all[j];
-        if (xs.includes(y) || subtrees(y).includes(x) || !eqRat(x.v, y.v)) continue;
+        if (xs.includes(y) || subtrees(y).includes(x) || valKey(x) !== valKey(y)) continue;
         const u = rebuild(t, new Map([[x, y], [y, x]]));
-        if (u) union(t.key, u.key);
+        if (u) link(t.key, u.key, x.cards.length + y.cards.length);
       }
       if (!x.op) continue;
-      const drop = [];
+      const drop = []; // [kept child, dropped child]
       if (x.op === '+' || x.op === '*') {
         const id = x.op === '+' ? 0 : 1;
-        if (isVal(x.a, id)) drop.push(x.b);
-        if (isVal(x.b, id)) drop.push(x.a);
-      } else if (isVal(x.b, x.op === '-' ? 0 : 1)) drop.push(x.a);
-      for (const keep of drop) {
+        if (isVal(x.a, id)) drop.push([x.b, x.a]);
+        if (isVal(x.b, id)) drop.push([x.a, x.b]);
+      } else if (isVal(x.b, x.op === '-' ? 0 : 1)) drop.push([x.a, x.b]);
+      for (const [keep, gone] of drop) {
         const core = rebuild(t, new Map([[x, keep]]));
         if (!core) continue;
-        if (cores.has(core.key)) union(t.key, cores.get(core.key));
-        else cores.set(core.key, t.key);
+        if (!cores.has(core.key)) cores.set(core.key, new Map());
+        const m = cores.get(core.key);
+        if (!(m.get(t.key) <= gone.cards.length)) m.set(t.key, gone.cards.length);
       }
     }
   }
+  for (const m of cores.values()) {
+    const es = [...m];
+    for (let i = 0; i < es.length; i++) {
+      for (let j = i + 1; j < es.length; j++) link(es[i][0], es[j][0], Math.max(es[i][1], es[j][1]));
+    }
+  }
+  return dist;
+}
+
+// Order classes so neighbours are as close as possible (shortest path through all of
+// them). Exact for small lists; nearest-neighbour plus 2-opt beyond that.
+const UNRELATED = 10;
+function orderClasses(n, d) {
+  if (n <= 2) return [...Array(n).keys()];
+  let best;
+  if (n <= 12) {
+    const full = (1 << n) - 1;
+    const cost = Array.from({ length: 1 << n }, () => new Float64Array(n).fill(Infinity));
+    const from = Array.from({ length: 1 << n }, () => new Int8Array(n).fill(-1));
+    for (let i = 0; i < n; i++) cost[1 << i][i] = i * 1e-6; // prefer starting early in the list
+    for (let m = 1; m <= full; m++) {
+      for (let i = 0; i < n; i++) {
+        if (!(m >> i & 1) || cost[m][i] === Infinity) continue;
+        for (let j = 0; j < n; j++) {
+          if (m >> j & 1) continue;
+          const c = cost[m][i] + d(i, j), m2 = m | (1 << j);
+          if (c < cost[m2][j]) { cost[m2][j] = c; from[m2][j] = i; }
+        }
+      }
+    }
+    let end = 0;
+    for (let i = 1; i < n; i++) if (cost[full][i] < cost[full][end]) end = i;
+    best = [];
+    for (let m = full, i = end; i >= 0;) { best.push(i); const p = from[m][i]; m ^= 1 << i; i = p; }
+    best.reverse();
+  } else {
+    best = [0];
+    const left = new Set([...Array(n).keys()].slice(1));
+    while (left.size) {
+      const last = best[best.length - 1];
+      let pick = -1;
+      for (const j of left) if (pick < 0 || d(last, j) < d(last, pick)) pick = j;
+      best.push(pick);
+      left.delete(pick);
+    }
+    const len = (p) => p.slice(1).reduce((s, x, k) => s + d(p[k], x), 0);
+    for (let improved = true; improved;) {
+      improved = false;
+      for (let i = 1; i < n - 1; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const q = [...best.slice(0, i), ...best.slice(i, j + 1).reverse(), ...best.slice(j + 1)];
+          if (len(q) < len(best) - 1e-9) { best = q; improved = true; }
+        }
+      }
+    }
+  }
+  return best[0] > best[best.length - 1] ? best.reverse() : best;
 }
 
 // Group every expression for 24 by equivalence class. Unlike the in-game search this
 // explores both operand orders for + and *, so a class lists all its written forms.
-// Returns families of related classes; each class is [representative, ...other forms].
+// Returns classes in display order: { forms: [representative, ...others], next }
+// where next is the distance to the following class (UNRELATED if none).
 function solveClasses(values) {
   const classes = new Map(); // key -> Set of display strings
   const lead = new Map(); // key -> standard written form
@@ -577,25 +664,23 @@ function solveClasses(values) {
   };
   walk(values.map(leaf));
 
-  const parent = new Map([...classes.keys()].map((k) => [k, k]));
-  const find = (k) => (parent.get(k) === k ? k : find(parent.get(k)));
-  const union = (x, y) => {
-    if (parent.has(x) && parent.has(y)) parent.set(find(x), find(y));
-  };
-  relatedLinks(trees, union);
-
   const byLen = (a, b) => a.length - b.length || a.localeCompare(b);
-  const fams = new Map();
-  for (const [k, set] of classes) {
-    const rep = lead.get(k);
-    const forms = [rep, ...[...set].filter((f) => f !== rep).sort(byLen)];
-    const r = find(k);
-    if (!fams.has(r)) fams.set(r, []);
-    fams.get(r).push(forms);
-  }
-  return [...fams.values()]
-    .map((f) => f.sort((a, b) => byLen(a[0], b[0])))
-    .sort((a, b) => byLen(a[0][0], b[0][0]));
+  const list = [...classes]
+    .map(([k, set]) => {
+      const rep = lead.get(k);
+      return { key: k, forms: [rep, ...[...set].filter((f) => f !== rep).sort(byLen)] };
+    })
+    .sort((a, b) => byLen(a.forms[0], b.forms[0]));
+  const dist = classDistances(trees);
+  const d = (i, j) => {
+    const [x, y] = [list[i].key, list[j].key].sort();
+    return dist.get(`${x}|${y}`) ?? UNRELATED;
+  };
+  const order = orderClasses(list.length, d);
+  return order.map((i, k) => ({
+    forms: list[i].forms,
+    next: k + 1 < order.length ? d(i, order[k + 1]) : UNRELATED,
+  }));
 }
 
 // Input: "1 2 3 4", "1,2,3,4", or "1234". With separators each token is a card
@@ -640,8 +725,8 @@ function runSolver() {
     return;
   }
 
-  const families = solveClasses(vals);
-  const classes = families.flat();
+  const ordered = solveClasses(vals);
+  const classes = ordered.map((c) => c.forms);
   if (!classes.length) {
     strat.innerHTML = '<span style="color:var(--bad)">unsolvable</span>';
     return;
@@ -650,11 +735,16 @@ function runSolver() {
   const total = classes.reduce((t, c) => t + c.length, 0);
   strat.innerHTML = `<span style="color:var(--ok)">${classes.length} distinct solution${classes.length === 1 ? '' : 's'}</span>` +
     ` (${total} written forms)` + (canon ? `  ·  canonical strategy: <b>${canon}</b>` : '');
-  for (const fam of families) for (const [idx, forms] of fam.entries()) {
+  // Bar on the left: bright between classes that differ by a small change, fading as
+  // the change touches more cards, absent between unrelated classes.
+  const strength = (dd) => (dd <= 2 ? 1 : dd === 3 ? 0.35 : 0);
+  let prev = UNRELATED;
+  for (const { forms, next } of ordered) {
     const li = document.createElement('li');
-    // Related classes sit together, joined by a bar on the left.
-    if (fam.length > 1) li.className = 'fam' + (idx === 0 ? ' fam-first' : '') + (idx === fam.length - 1 ? ' fam-last' : '');
-    else li.className = 'fam-solo';
+    li.style.setProperty('--up', strength(prev));
+    li.style.setProperty('--down', strength(next));
+    if (next >= UNRELATED) li.classList.add('gap-after');
+    prev = next;
     if (forms.length === 1) {
       li.textContent = forms[0];
     } else {
