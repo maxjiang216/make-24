@@ -152,3 +152,5 @@ summary { cursor: pointer; }
 .t-field.disabled { opacity: .45; }
 .t-field.disabled select { cursor: not-allowed; }
 .t-toolbar .timer { margin-left: auto; }
+.t-frange { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.t-frange .num { width: 4.5em; }

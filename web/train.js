@@ -54,7 +54,7 @@ function recogOrder() {
   return o;
 }
 const strategyOf = (k) => (CANONICAL[k] || '').replace(/ \d+$/, '');
-// Solve deck difficulty: fewer distinct solutions is harder; among equal counts, a
+// Solve deck difficulty: fewer solutions (distinct or total, per the filter) is harder; among equal counts, a
 // rarer strategy (fractions, 48/2, ...) is harder than a common one (3x8).
 function solveOrder(how) {
   const keys = [...SOLVABLE_KEYS];
@@ -65,9 +65,9 @@ function solveOrder(how) {
     return keys.sort((a, b) =>
       freq[strategyOf(a)] - freq[strategyOf(b)] ||
       strategyOf(a).localeCompare(strategyOf(b)) ||
-      CLASS_COUNT[a] - CLASS_COUNT[b] || byName(a, b));
+      solCount(a) - solCount(b) || byName(a, b));
   }
-  const hard = (a, b) => CLASS_COUNT[a] - CLASS_COUNT[b] || freq[strategyOf(a)] - freq[strategyOf(b)] || byName(a, b);
+  const hard = (a, b) => solCount(a) - solCount(b) || freq[strategyOf(a)] - freq[strategyOf(b)] || byName(a, b);
   return keys.sort(how === 'easy' ? (a, b) => hard(b, a) : hard);
 }
 const newOrder = () => (T.deck === 'recog' ? recogOrder() : solveOrder(T.order)).filter((k) => POOL_SET.has(k));
@@ -78,6 +78,10 @@ const newOrder = () => (T.deck === 'recog' ? recogOrder() : solveOrder(T.order))
 const FACE = new Set([11, 12, 13]);
 const RANKS = [...Array(13)].map((_, i) => i + 1);
 const COUNTS = [...new Set(Object.values(CLASS_COUNT))].sort((a, b) => a - b);
+const MAX_FORMS = Math.max(...Object.values(FORM_COUNT));
+// Solution count used for filtering and difficulty order: distinct solutions, or the
+// total number of written forms (4*6 and 6*4 counted separately).
+const solCount = (k) => (T.filter.countMode === 'total' ? FORM_COUNT : CLASS_COUNT)[k];
 const STRATS = (() => {
   // ladder order, as the tags are listed
   const seen = [];
@@ -87,13 +91,16 @@ const STRATS = (() => {
 })();
 const defaultFilter = () => ({
   ranks: RANKS, faces: [0, 1, 2, 3, 4], counts: COUNTS, strats: STRATS, stratMode: 'canonical',
+  countMode: 'distinct', formMin: 1, formMax: MAX_FORMS,
 });
 function inFilter(k, f) {
   const cards = k.split('-').map(Number);
   if (!cards.every((c) => f.ranks.includes(c))) return false;
   if (!f.faces.includes(cards.filter((c) => FACE.has(c)).length)) return false;
   if (T.deck !== 'solve') return true;
-  if (!f.counts.includes(CLASS_COUNT[k])) return false;
+  if (f.countMode === 'total') {
+    if (FORM_COUNT[k] < f.formMin || FORM_COUNT[k] > f.formMax) return false;
+  } else if (!f.counts.includes(CLASS_COUNT[k])) return false;
   if (f.strats.length === STRATS.length) return true;
   return f.stratMode === 'canonical'
     ? f.strats.includes(CANONICAL[k])
@@ -220,7 +227,39 @@ function renderFilter() {
   group('ranks allowed', 'ranks', RANKS, (v) => LABEL[v]);
   group('face cards (J Q K)', 'faces', [0, 1, 2, 3, 4]);
   if (T.deck === 'solve') {
-    group('distinct solutions', 'counts', COUNTS);
+    const cg = document.createElement('div');
+    cg.className = 't-fgroup';
+    cg.innerHTML = '<div class="t-fhead"><span>number of solutions</span></div><div class="t-fmode"></div><div class="t-fbody"></div>';
+    for (const [val, text] of [['distinct', 'distinct'], ['total', 'total written forms']]) {
+      const b = document.createElement('button');
+      b.className = 'chip' + (f.countMode === val ? ' on' : '');
+      b.textContent = text;
+      b.onclick = () => setField('countMode', val);
+      cg.querySelector('.t-fmode').appendChild(b);
+    }
+    body.appendChild(cg);
+    if (f.countMode === 'total') {
+      const r = cg.querySelector('.t-fbody');
+      r.className = 't-frange';
+      r.innerHTML = `from <input type="number" class="num" min="1" max="${MAX_FORMS}"> to <input type="number" class="num" min="1" max="${MAX_FORMS}"> <span class="dim">(1 to ${MAX_FORMS}; median 12)</span>`;
+      const [lo, hi] = r.querySelectorAll('input');
+      lo.value = f.formMin;
+      hi.value = f.formMax;
+      const upd = () => {
+        const a = Math.max(1, Math.min(MAX_FORMS, Math.round(+lo.value || 1)));
+        const b = Math.max(1, Math.min(MAX_FORMS, Math.round(+hi.value || MAX_FORMS)));
+        T.filter.formMin = Math.min(a, b);
+        T.filter.formMax = Math.max(a, b);
+        onFilterChange(false); // keep the inputs (and focus) in place
+      };
+      lo.onchange = upd;
+      hi.onchange = upd;
+    } else {
+      const g = group('', 'counts', COUNTS);
+      g.querySelector('.t-fhead span').remove();
+      g.querySelector('.t-fhead').style.justifyContent = 'flex-end';
+      cg.querySelector('.t-fbody').appendChild(g);
+    }
     const g = group('strategy', 'strats', STRATS);
     const mode = document.createElement('div');
     mode.className = 't-fmode';
@@ -236,10 +275,13 @@ function renderFilter() {
   const foot = document.createElement('div');
   foot.className = 't-ffoot';
   foot.innerHTML = '<span></span><button class="link">reset filter</button>';
-  foot.firstChild.textContent = `${POOL.length} of ${DECKS[T.deck].keys.length} sets`;
   foot.lastChild.onclick = () => { T.filter = defaultFilter(); onFilterChange(); };
   body.appendChild(foot);
+  renderFilterCount();
+}
+function renderFilterCount() {
   const whole = POOL.length === DECKS[T.deck].keys.length;
+  $('t-filter-body').querySelector('.t-ffoot span').textContent = `${POOL.length} of ${DECKS[T.deck].keys.length} sets`;
   $('t-filter-sum').textContent = whole ? 'filter' : `filter · ${POOL.length}`;
   $('t-filter').classList.toggle('active', !whole);
 }
@@ -247,10 +289,11 @@ function setField(field, v) {
   T.filter[field] = v;
   onFilterChange();
 }
-function onFilterChange() {
+function onFilterChange(redraw = true) {
   store.set('filter-' + T.deck, T.filter);
   applyFilter();
-  renderFilter();
+  if (redraw) renderFilter();
+  else renderFilterCount();
   if (T.state !== 'asking' || !POOL_SET.has(T.key)) deal();
   else renderProgress();
 }
@@ -340,6 +383,7 @@ function reveal() {
     const head = document.createElement('div');
     head.className = 'dim';
     head.textContent = `${classes.length} distinct solution${classes.length === 1 ? '' : 's'}` +
+      ` (${FORM_COUNT[T.key]} written form${FORM_COUNT[T.key] === 1 ? '' : 's'})` +
       (CANONICAL[T.key] ? ` · strategy: ${strategyOf(T.key)}` : '');
     const ul = document.createElement('ul');
     ul.className = 't-sols';

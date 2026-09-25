@@ -45,7 +45,8 @@ No build step. Serve the folder:
   time; a just-answered set sits out a few turns after a miss, longer after each fast
   right answer in a row. New sets enter (hardest first, easiest first, or by strategy)
   once everything available is right and fast. A filter narrows the deck by ranks, face
-  cards, number of distinct solutions, and strategy (canonical, or any solution's).
+  cards, number of solutions (distinct, or a range of total written forms), and strategy
+  (canonical, or any solution's).
   Progress lives in localStorage with CSV export/import.
   `web/difficulty.js` comes from `node scripts/class-counts.js`; `web/strategy-tags.js`
   (every canonical-ladder strategy that applies to a set) comes from the Rust solver.
