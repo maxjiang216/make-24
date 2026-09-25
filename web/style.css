@@ -82,3 +82,22 @@ summary { cursor: pointer; }
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
   background: linear-gradient(rgb(122 162 247 / var(--up)), rgb(122 162 247 / calc((var(--up) + var(--down)) / 2)) 50%, rgb(122 162 247 / var(--down)));
 }
+/* ---- train page ---- */
+.hidden { display: none !important; }
+.t-bar { flex-wrap: wrap; font-size: 13px; }
+.t-bar select, .num {
+  font: inherit; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; margin-left: 4px;
+}
+.num { width: 4.5em; margin-right: 2px; }
+.t-progress { color: var(--dim); font-size: 13px; margin-top: 10px; }
+#t-cards { cursor: pointer; }
+.t-prompt { text-align: center; color: var(--dim); min-height: 24px; }
+.t-answer { text-align: center; font: 15px ui-monospace, monospace; min-height: 24px; }
+.t-answer .big { font: 700 22px/1.4 ui-sans-serif, system-ui, sans-serif; letter-spacing: .06em; }
+.t-answer .ok { color: var(--ok); }
+.t-answer .bad { color: var(--bad); }
+.t-sols { list-style: none; padding: 0; margin: 8px 0 0; }
+.t-grade { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+.t-grade button { min-width: 120px; padding: 10px 14px; }
+.t-card-stats { text-align: center; color: var(--dim); font-size: 13px; margin-top: 12px; }

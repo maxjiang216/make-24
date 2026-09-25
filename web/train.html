@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make 24 · Train</title>
+<meta name="description" content="Flash-card training for every Make-24 set, with spaced repetition.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Make 24</h1>
+  <nav>
+    <a class="tab" href="index.html">Practice</a>
+    <button id="deck-recog" class="tab active">Solvable?</button>
+    <button id="deck-solve" class="tab">Solve</button>
+  </nav>
+</header>
+
+<main>
+  <div class="bar t-bar">
+    <label id="order-wrap">order
+      <select id="order">
+        <option value="hard">fewest solutions first (hardest)</option>
+        <option value="easy">most solutions first (easiest)</option>
+        <option value="strategy">by strategy, rarest first</option>
+      </select>
+    </label>
+    <label>fast if under <input id="target" type="number" min="0.5" step="0.5" class="num">s</label>
+    <span class="timer" id="t-timer">0.00</span>
+  </div>
+  <div class="t-progress" id="t-progress"></div>
+
+  <div class="cards" id="t-cards"></div>
+  <div class="t-prompt" id="t-prompt"></div>
+  <div class="t-answer" id="t-answer"></div>
+  <div class="t-grade hidden" id="t-grade">
+    <button id="t-wrong">← wrong</button>
+    <button id="t-right">right →</button>
+  </div>
+  <div class="t-card-stats" id="t-card-stats"></div>
+
+  <div class="stats">
+    <div class="hist-head">
+      <span>weakest sets in this deck</span>
+      <button id="t-reset" class="mini">reset deck progress</button>
+    </div>
+    <ol id="t-weak" class="hist"></ol>
+  </div>
+</main>
+
+<footer>
+  <details>
+    <summary>how it works</summary>
+    <ul>
+      <li><b>Solvable?</b> covers all 1820 sets (1362 solvable, 458 not). Decide whether the set can make 24.</li>
+      <li><b>Solve</b> covers the 1362 solvable sets. Find a solution in your head.</li>
+      <li>Press any key (or tap the cards) to stop the timer and see the answer, then grade yourself with <code>→</code> (right) or <code>←</code> (wrong).</li>
+      <li>Spaced repetition: a wrong answer brings the set back within a minute. A right answer under the "fast" time moves it to a longer interval (5 min, 30 min, 4 h, 1 day, 3 days, 8 days, 3 weeks, 2 months). A slow right answer keeps its interval. A set counts as mastered from the 1-day interval on.</li>
+      <li>New sets come in the chosen order, a few at a time, once nothing is due. Progress is saved in this browser.</li>
+    </ul>
+  </details>
+</footer>
+
+<script src="solutions.js"></script>
+<script src="canonical.js"></script>
+<script src="difficulty.js"></script>
+<script src="common.js"></script>
+<script src="train.js"></script>
+</body>
+</html>
