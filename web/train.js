@@ -400,7 +400,9 @@ function setDeck(d) {
   applyFilter();
   renderFilter();
   $('deck').value = d;
-  $('order-wrap').classList.toggle('hidden', d !== 'solve');
+  // Same toolbar in both decks; "new sets" order only applies to Solve.
+  $('order').disabled = d !== 'solve';
+  $('order-wrap').classList.toggle('disabled', d !== 'solve');
   $('target').value = store.get('target-' + d, DECKS[d].target);
   deal();
 }
@@ -436,7 +438,9 @@ $('t-reset').addEventListener('click', () => {
   deal();
 });
 document.addEventListener('click', (e) => {
-  for (const m of document.querySelectorAll('.t-menu[open]')) if (!m.contains(e.target)) m.open = false;
+  // composedPath still lists a chip that re-rendering has just removed from the page
+  const path = e.composedPath();
+  for (const m of document.querySelectorAll('.t-menu[open]')) if (!path.includes(m)) m.open = false;
 });
 $('t-cards').addEventListener('click', advance);
 $('t-prompt').addEventListener('click', advance);
