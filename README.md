@@ -52,10 +52,11 @@ No build step. Serve the folder:
   (every canonical-ladder strategy that applies to a set) comes from the Rust solver.
 
 - **Survey** (`survey.html`): one timed pass through all 1362 solvable sets in a fixed
-  random order. Any key turns the cards over, any key stops the clock and shows the time,
-  solution count, strategy and a solution; `←` instead flags a miss. Nothing is graded.
-  The pass resumes after a reload and exports as CSV (order, set, ms, flagged, distinct
-  and written solution counts, strategy).
+  random order. The first key turns the cards over; after that, each key press records
+  the time and deals the next set at once (`←` instead flags a miss). The set just done
+  is shown underneath with its time, solution count, strategy and a solution. Nothing is
+  graded. The pass resumes after a reload and exports as CSV (order, set, ms, flagged,
+  distinct and written solution counts, strategy).
 
 Input accepts `+ - * /`, parentheses, and `A J Q K` (or `1 11 12 13`). Fractions are
 exact, so `(5-1/5)*5` is accepted.

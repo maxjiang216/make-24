@@ -24,7 +24,7 @@ function savePass() {
 }
 
 let P = loadPass();
-let state = 'ready'; // 'ready' (face down) | 'asking' (clock running) | 'shown' | 'done'
+let state = 'ready'; // 'ready' (face down) | 'asking' (clock running) | 'done'
 const timer = makeTimer($('s-timer'));
 const current = () => P.order[P.results.length];
 
@@ -52,7 +52,6 @@ function flip() {
   state = 'asking';
   renderCards($('s-cards'), shuffle(randomSuits(current().split('-').map(Number))));
   $('s-prompt').textContent = 'Any key when you have it · ← if you give up';
-  $('s-answer').innerHTML = '';
   timer.start();
 }
 
@@ -61,26 +60,26 @@ function stop(flag) {
   const k = current();
   P.results.push({ ms, flag });
   savePass();
-  state = 'shown';
+  // Show the set just finished (below the next one) and deal the next set right away.
   const classes = solveClasses(k.split('-').map(Number));
   const ans = $('s-answer');
-  ans.innerHTML = '<div class="big"></div><div class="dim"></div><div></div>';
-  ans.children[0].textContent = `${fmt(ms)}s` + (flag ? ' · flagged' : '');
-  ans.children[0].className = 'big ' + (flag ? 'bad' : 'ok');
-  ans.children[1].textContent =
+  ans.innerHTML = '<div class="dim"></div><div class="big"></div><div class="dim"></div><div></div>';
+  ans.children[0].textContent = 'last: ' + cardText(k);
+  ans.children[1].textContent = `${fmt(ms)}s` + (flag ? ' · flagged' : '');
+  ans.children[1].className = 'big ' + (flag ? 'bad' : 'ok');
+  ans.children[2].textContent =
     `${classes.length} distinct solution${classes.length === 1 ? '' : 's'} (${FORM_COUNT[k]} written) · ${strategyOf(k)}`;
-  ans.children[2].textContent = classes[0].forms[0];
-  $('s-prompt').textContent = P.results.length >= P.order.length
-    ? 'Pass complete. Press any key.'
-    : 'Any key for the next set.';
+  ans.children[3].textContent = classes[0].forms[0];
   render();
+  if (P.results.length >= P.order.length) showDone(false);
+  else flip();
 }
 
-function showDone() {
+function showDone(clear = true) {
   state = 'done';
   $('s-cards').innerHTML = '';
   $('s-prompt').textContent = 'Pass complete. Export it from ⋯, or start a new pass there.';
-  $('s-answer').innerHTML = '';
+  if (clear) $('s-answer').innerHTML = '';
   render();
 }
 
@@ -126,10 +125,6 @@ function exportCsv() {
 function advance(flag = false) {
   if (state === 'ready') flip();
   else if (state === 'asking') stop(flag);
-  else if (state === 'shown') {
-    if (P.results.length >= P.order.length) showDone();
-    else flip(); // the key press that dismisses the answer also starts the next set
-  }
 }
 
 $('s-cards').addEventListener('click', () => advance());
