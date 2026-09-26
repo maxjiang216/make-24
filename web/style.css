@@ -154,3 +154,7 @@ summary { cursor: pointer; }
 .t-toolbar .timer { margin-left: auto; }
 .t-frange { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
 .t-frange .num { width: 4.5em; }
+/* ---- survey page ---- */
+.s-bar { height: 4px; background: var(--panel); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+#s-fill { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+#s-cards { cursor: pointer; }

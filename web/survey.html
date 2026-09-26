@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make 24 · Survey</title>
+<meta name="description" content="One timed pass through every solvable Make-24 set.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Make 24</h1>
+  <nav>
+    <a class="tab" href="index.html">Practice</a>
+    <a class="tab" href="train.html">Train</a>
+    <span class="tab active">Survey</span>
+  </nav>
+</header>
+
+<main>
+  <div class="t-toolbar">
+    <div class="t-progress" id="s-progress"></div>
+    <details class="t-menu" id="s-menu">
+      <summary>⋯</summary>
+      <div class="t-menu-body">
+        <button id="s-export">export this pass (CSV)</button>
+        <button id="s-new" class="danger">start a new pass</button>
+      </div>
+    </details>
+    <span class="timer" id="s-timer">0.00</span>
+  </div>
+  <div class="s-bar"><div id="s-fill"></div></div>
+
+  <div class="cards" id="s-cards"></div>
+  <div class="t-prompt" id="s-prompt"></div>
+  <div class="t-answer" id="s-answer"></div>
+
+  <div class="stats">
+    <div class="hist-head"><span>slowest so far this pass</span></div>
+    <ol id="s-slow" class="hist"></ol>
+  </div>
+</main>
+
+<footer>
+  <details>
+    <summary>how it works</summary>
+    <ul>
+      <li>One pass covers all 1362 solvable sets once, in a random order that's fixed for the pass.</li>
+      <li>Press any key (or tap) to turn the cards over and start the clock. Press any key again when you have a solution: the time is recorded and the next set is dealt straight away. The set you just did is shown underneath with your time, its solution count, strategy and a solution.</li>
+      <li>Nothing is graded. Press <code>←</code> instead if you gave up or got it wrong; that's recorded as a flag.</li>
+      <li>The pass is saved in this browser, so you can stop and resume. Export it from <code>⋯</code> as a CSV with the time for every set, to sort and group however you like.</li>
+    </ul>
+  </details>
+</footer>
+
+<script src="solutions.js"></script>
+<script src="canonical.js"></script>
+<script src="difficulty.js"></script>
+<script src="common.js"></script>
+<script src="survey.js"></script>
+</body>
+</html>
