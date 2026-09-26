@@ -38,6 +38,19 @@ No build step. Serve the folder:
   pieces, or move a +0 / ×1 piece), with a gap between unrelated groups. Expand a row to see every
   written form in that class. Also shows the set's canonical strategy label.
 
+- **Train** (`train.html`): flash cards over all 1820 sets, with no daily schedule.
+  *Solvable?* (all sets; answer `→` solvable / `←` unsolvable, checked automatically) and
+  *Solve* (the 1362 solvable sets; any key stops the clock and shows every solution, then
+  you grade yourself). The next set is the weakest one by rolling accuracy, then rolling
+  time; a just-answered set sits out a few turns after a miss, longer after each fast
+  right answer in a row. New sets enter (hardest first, easiest first, or by strategy)
+  once everything available is right and fast. A filter narrows the deck by ranks, face
+  cards, number of solutions (distinct, or a range of total written forms), and strategy
+  (canonical, or any solution's).
+  Progress lives in localStorage with CSV export/import.
+  `web/difficulty.js` comes from `node scripts/class-counts.js`; `web/strategy-tags.js`
+  (every canonical-ladder strategy that applies to a set) comes from the Rust solver.
+
 Input accepts `+ - * /`, parentheses, and `A J Q K` (or `1 11 12 13`). Fractions are
 exact, so `(5-1/5)*5` is accepted.
 

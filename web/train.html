@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Make 24 · Train</title>
+<meta name="description" content="Flash-card training for every Make-24 set.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Make 24</h1>
+  <nav>
+    <a class="tab" href="index.html">Practice</a>
+    <span class="tab active">Train</span>
+  </nav>
+</header>
+
+<main>
+  <div class="t-toolbar">
+    <label class="t-field">deck
+      <select id="deck">
+        <option value="recog">Solvable? (all 1820 sets)</option>
+        <option value="solve">Solve (1362 solvable sets)</option>
+      </select>
+    </label>
+    <label class="t-field" id="order-wrap">new sets
+      <select id="order">
+        <option value="hard">hardest first</option>
+        <option value="easy">easiest first</option>
+        <option value="strategy">by strategy, rarest first</option>
+      </select>
+    </label>
+    <details class="t-menu t-filter" id="t-filter">
+      <summary id="t-filter-sum">filter</summary>
+      <div class="t-menu-body t-filter-body" id="t-filter-body"></div>
+    </details>
+    <details class="t-menu" id="t-menu">
+      <summary>⋯</summary>
+      <div class="t-menu-body">
+        <label>fast if under <input id="target" type="number" min="0.5" step="0.5" class="num"> s</label>
+        <button id="t-export">export progress (CSV)</button>
+        <label class="t-file">import progress (CSV)<input id="t-import" type="file" accept=".csv,text/csv"></label>
+        <button id="t-reset" class="danger">reset this deck</button>
+      </div>
+    </details>
+    <span class="timer" id="t-timer">0.00</span>
+  </div>
+  <div class="t-progress" id="t-progress"></div>
+
+  <div class="cards" id="t-cards"></div>
+  <div class="t-prompt" id="t-prompt"></div>
+  <div class="t-answer" id="t-answer"></div>
+  <div class="t-grade hidden" id="t-grade">
+    <button id="t-wrong">← wrong</button>
+    <button id="t-right">right →</button>
+  </div>
+  <div class="t-card-stats" id="t-card-stats"></div>
+
+  <div class="stats">
+    <div class="hist-head"><span>weakest sets in this deck</span></div>
+    <ol id="t-weak" class="hist"></ol>
+  </div>
+</main>
+
+<footer>
+  <details>
+    <summary>how it works</summary>
+    <ul>
+      <li><b>Solvable?</b> covers all 1820 sets (1362 solvable, 458 not): decide whether the set can make 24. <b>Solve</b> covers the 1362 solvable sets: find a solution.</li>
+      <li>Press any key (or tap) to turn the cards over; the timer starts then.</li>
+      <li><b>Solvable?</b>: answer with <code>→</code> (solvable) or <code>←</code> (unsolvable). It's checked for you, and any key deals the next set.</li>
+      <li><b>Solve</b>: press any key when you have a solution. That stops the timer and shows every solution, so typing time doesn't count. Grade yourself with <code>→</code> (right) or <code>←</code> (wrong).</li>
+      <li>There's no daily schedule: keep going as long as you like. The next set is the one you're weakest on, by recent accuracy and then by recent time. A set you just saw sits out for a while: a few turns after a miss, longer the more times in a row you get it right fast.</li>
+      <li><b>filter</b> narrows the deck to sets that are easy to pick out: which ranks may appear, how many face cards (J Q K), and for Solve, the number of solutions (distinct, or a range of total written forms, where 4*6 and 6*4 count separately) and the strategy. Strategy can match the set's one canonical strategy, or any strategy one of its solutions uses. Your progress is kept for every set either way.</li>
+      <li>When every set that's available is one you currently get right and fast, a new set comes in, in the order you pick.</li>
+      <li>Progress is saved in this browser. Use export / import under <code>⋯</code> to back it up or move it to another device.</li>
+    </ul>
+  </details>
+</footer>
+
+<script src="solutions.js"></script>
+<script src="canonical.js"></script>
+<script src="difficulty.js"></script>
+<script src="strategy-tags.js"></script>
+<script src="common.js"></script>
+<script src="train.js"></script>
+</body>
+</html>

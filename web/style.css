@@ -27,7 +27,12 @@ button {
 }
 button:hover { border-color: var(--accent); }
 .tab.active { background: var(--accent); color: #10131a; border-color: var(--accent); }
-a.tab { text-decoration: none; display: inline-block; color: var(--fg); }
+a.tab, span.tab {
+  text-decoration: none; display: inline-block; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px;
+}
+a.tab:hover { border-color: var(--accent); }
+span.tab.active { background: var(--accent); color: #10131a; border-color: var(--accent); }
 .mini { padding: 2px 8px; font-size: 12px; }
 main { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
 .mode.hidden { display: none; }
@@ -82,3 +87,70 @@ summary { cursor: pointer; }
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
   background: linear-gradient(rgb(122 162 247 / var(--up)), rgb(122 162 247 / calc((var(--up) + var(--down)) / 2)) 50%, rgb(122 162 247 / var(--down)));
 }
+/* ---- train page ---- */
+.hidden { display: none !important; }
+.t-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.t-field { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.t-toolbar select, .num {
+  font: 14px ui-sans-serif, system-ui, sans-serif; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 28px 6px 10px; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%;
+  background-size: 5px 5px; background-repeat: no-repeat;
+  text-transform: none; letter-spacing: 0;
+}
+.t-toolbar select:hover, .t-toolbar select:focus { border-color: var(--accent); outline: none; }
+.num { width: 5em; padding: 4px 8px; background-image: none; cursor: text; }
+.t-menu { position: relative; align-self: flex-end; }
+.t-menu summary {
+  list-style: none; cursor: pointer; padding: 5px 12px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--panel); color: var(--fg);
+}
+.t-menu summary::-webkit-details-marker { display: none; }
+.t-menu[open] summary, .t-menu summary:hover { border-color: var(--accent); }
+.t-menu-body {
+  position: absolute; z-index: 10; top: calc(100% + 6px); left: 0; min-width: 230px;
+  display: flex; flex-direction: column; gap: 8px; padding: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .4); font-size: 13px;
+}
+.t-menu-body button, .t-file { text-align: left; }
+.t-file { cursor: pointer; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.t-file:hover { border-color: var(--accent); }
+.t-file input { display: none; }
+.danger { color: var(--bad); }
+.t-toolbar .timer { align-self: flex-end; }
+.t-progress { color: var(--dim); font-size: 13px; margin-top: 12px; }
+#t-cards { cursor: pointer; }
+.card.back {
+  background: repeating-linear-gradient(45deg, #34426b 0 6px, #2a3657 6px 12px);
+  border-color: #4a5a8a;
+}
+.t-prompt { text-align: center; color: var(--dim); min-height: 24px; cursor: pointer; }
+.t-answer { text-align: center; font: 15px ui-monospace, monospace; min-height: 24px; }
+.t-answer .big { font: 700 22px/1.4 ui-sans-serif, system-ui, sans-serif; letter-spacing: .04em; }
+.t-answer .ok { color: var(--ok); }
+.t-answer .bad { color: var(--bad); }
+.t-sols { list-style: none; padding: 0; margin: 8px 0 0; }
+.t-grade { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+.t-grade button { min-width: 140px; padding: 10px 14px; }
+.t-card-stats { text-align: center; color: var(--dim); font-size: 13px; margin-top: 12px; }
+.t-filter-body { min-width: 320px; max-width: min(560px, calc(100vw - 32px)); gap: 12px; }
+.t-filter.active summary { border-color: var(--accent); color: var(--accent); }
+.t-fhead { display: flex; align-items: baseline; gap: 8px; color: var(--dim); font-size: 12px; margin-bottom: 4px; }
+.t-fhead span { margin-right: auto; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+.link { background: none; border: none; padding: 0; color: var(--accent); font-size: 12px; cursor: pointer; }
+.chips, .t-fmode { display: flex; flex-wrap: wrap; gap: 4px; }
+.t-fmode { margin-bottom: 6px; }
+.chip { padding: 2px 8px; font-size: 12px; border-radius: 12px; color: var(--dim); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #10131a; }
+.t-ffoot { display: flex; justify-content: space-between; color: var(--dim); font-size: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+@media (max-width: 640px) {
+  .t-menu-body { position: fixed; top: 120px; left: 16px; right: 16px; min-width: 0; max-width: none; max-height: 70vh; overflow: auto; }
+}
+.t-field.disabled { opacity: .45; }
+.t-field.disabled select { cursor: not-allowed; }
+.t-toolbar .timer { margin-left: auto; }
+.t-frange { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.t-frange .num { width: 4.5em; }

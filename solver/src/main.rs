@@ -203,32 +203,45 @@ fn reach(vals: &[Rat], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> BTreeSet<
 }
 
 fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'static str {
+    canonical_all(cards, memo, false)[0]
+}
+
+// Every rung of the ladder that fires for this set (in ladder order), or just the
+// first one when `all` is false. The trainer's "any strategy" filter uses the full list.
+fn canonical_all(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>, all: bool) -> Vec<&'static str> {
     let v: Vec<Rat> = cards.iter().map(|&c| Rat::int(c)).collect();
+    let mut out: Vec<&'static str> = Vec::new();
+    macro_rules! hit {
+        ($name:expr) => {{
+            if !out.contains(&$name) { out.push($name); }
+            if !all { return out; }
+        }};
+    }
 
     // 1. double factor: two copies of f, remaining x,y with x±y near t = 24/f.
     //    f*x + f*y, f + f*(x±y), or f*(x±y) - f — all consume both copies of f.
-    for &f in &[2i64, 3, 4, 6, 8, 12] {
+    'df: for &f in &[2i64, 3, 4, 6, 8, 12] {
         let idx: Vec<usize> = (0..4).filter(|&i| cards[i] == f).collect();
         if idx.len() < 2 { continue; }
         let rest: Vec<i64> = (0..4).filter(|i| *i != idx[0] && *i != idx[1]).map(|i| cards[i]).collect();
         let (x, y) = (rest[0], rest[1]);
         let t = 24 / f;
-        if [x + y, (x - y).abs()].iter().any(|&s| (s - t).abs() <= 1) { return "double factor"; }
+        if [x + y, (x - y).abs()].iter().any(|&s| (s - t).abs() <= 1) { hit!("double factor"); break 'df; }
     }
 
     // 2. pair cancel: two equal cards neutralise each other (x-x = 0, x/x = 1) and the
     //    other two already add to 24 — so 11+13 or 12+12.
-    for i in 0..4 {
+    'pc: for i in 0..4 {
         for j in (i + 1)..4 {
             if cards[i] != cards[j] { continue; }
             let rest: Vec<i64> = (0..4).filter(|&k| k != i && k != j).map(|k| cards[k]).collect();
-            if rest[0] + rest[1] == 24 { return "pair cancel"; }
+            if rest[0] + rest[1] == 24 { hit!("pair cancel"); break 'pc; }
         }
     }
 
     // 3. the "2 3 4" ladder: two of {2,3,4} are already cards, and the remaining two
     //    cards make the third in a single operation. 2*3*4 = 24.
-    for i in 0..4 {
+    't234: for i in 0..4 {
         for j in (i + 1)..4 {
             let rest: Vec<i64> = (0..4).filter(|&k| k != i && k != j).map(|k| cards[k]).collect();
             let (x, y) = (rest[0], rest[1]);
@@ -238,32 +251,32 @@ fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'
             let m = Rat::int(missing);
             let one_op = a.add(b) == m || a.mul(b) == m || a.sub(b) == m || b.sub(a) == m
                 || a.div(b) == Some(m) || b.div(a) == Some(m);
-            if one_op { return "234"; }
+            if one_op { hit!("234"); break 't234; }
         }
     }
 
     // 4. a base factor is on the table; the other three make its partner
-    for &(f, p, name) in &[(3i64, 8i64, "direct 3x8"), (8, 3, "direct 3x8"),
+    'dir: for &(f, p, name) in &[(3i64, 8i64, "direct 3x8"), (8, 3, "direct 3x8"),
                            (4, 6, "direct 4x6"), (6, 4, "direct 4x6"),
                            (2, 12, "direct 2x12"), (12, 2, "direct 2x12")] {
         for i in 0..4 {
             if cards[i] != f { continue; }
             let rest: Vec<Rat> = (0..4).filter(|&k| k != i).map(|k| v[k]).collect();
-            if reach(&rest, memo).contains(&Rat::int(p)) { return name; }
+            if reach(&rest, memo).contains(&Rat::int(p)) { hit!(name); continue 'dir; }
         }
     }
 
     // 5. everything just adds up
-    if cards.iter().sum::<i64>() == 24 { return "sum"; }
+    if cards.iter().sum::<i64>() == 24 { hit!("sum"); }
 
     // 6. one operation on each pair puts a base factor pair on the table
-    for &(a, b, name) in &[(4i64, 6i64, "split 4x6"), (3, 8, "split 3x8"), (2, 12, "split 2x12")] {
+    'sp: for &(a, b, name) in &[(4i64, 6i64, "split 4x6"), (3, 8, "split 3x8"), (2, 12, "split 2x12")] {
         for mask in [0b0011u32, 0b0101, 0b1001] {
             let l: Vec<Rat> = (0..4).filter(|i| mask >> i & 1 == 1).map(|i| v[i]).collect();
             let r: Vec<Rat> = (0..4).filter(|i| mask >> i & 1 == 0).map(|i| v[i]).collect();
             let (ls, rs) = (reach(&l, memo), reach(&r, memo));
             if (ls.contains(&Rat::int(a)) && rs.contains(&Rat::int(b)))
-                || (ls.contains(&Rat::int(b)) && rs.contains(&Rat::int(a))) { return name; }
+                || (ls.contains(&Rat::int(b)) && rs.contains(&Rat::int(a))) { hit!(name); continue 'sp; }
         }
     }
 
@@ -271,7 +284,7 @@ fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'
 
     // 7. named product roots: the last TWO operations are (f1*f2) +/- adj. The first
     //    operation may build any one of the three parts, so 3*(12-1)-9 counts as 33-9.
-    for &(f1, f2, adj, add, name) in &[
+    'named: for &(f1, f2, adj, add, name) in &[
         (5i64, 5i64, 1i64, false, "25-1"),
         (5, 7, 11, false, "35-11"),
         (3, 11, 9, false, "33-9"),
@@ -292,14 +305,15 @@ fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'
             for k in 0..3 {
                 if !reach(&slots[k], memo).contains(&want[k]) { continue 'assign; }
             }
-            return name;
+            hit!(name);
+            continue 'named;
         }
     }
 
     // 7b. divide: last two operations are (A op B) / C, with C = d and the numerator
     //     24*d. Covers 48/2, 72/3, 96/4, 120/5, ... and additive numerators like (70+2)/3.
     //     A numerator part that is already 24 is a trivial x/x wrapper, so skip those.
-    for d in 2..=13i64 {
+    'dv: for d in 2..=13i64 {
         let want_num = Rat::int(24 * d);
         'div: for code in 0..81u32 {
             let mut slots: [Vec<Rat>; 3] = [vec![], vec![], vec![]];
@@ -316,11 +330,12 @@ fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'
                     if a == Rat::int(24) || b == Rat::int(24) { continue; }
                     if a.add(b) == want_num || a.mul(b) == want_num
                         || a.sub(b) == want_num || b.sub(a) == want_num {
-                        return match d {
+                        hit!(match d {
                             2 => "48/2", 3 => "72/3", 4 => "96/4", 5 => "120/5",
                             6 => "144/6", 7 => "168/7", 8 => "192/8", 9 => "216/9",
                             10 => "240/10", 11 => "264/11", 12 => "288/12", _ => "312/13",
-                        };
+                        });
+                        continue 'dv;
                     }
                 }
             }
@@ -336,9 +351,10 @@ fn canonical(cards: [i64; 4], memo: &mut HashMap<Vec<Rat>, BTreeSet<Rat>>) -> &'
     };
     let integral = |l: &str| !l.contains('(');
     for &(op, name) in &[('*', "product"), ('+', "sum-pair"), ('-', "difference"), ('/', "quotient")] {
-        if strats.iter().any(|(o, l, _)| *o == op && integral(l) && !trivial(l)) { return name; }
+        if strats.iter().any(|(o, l, _)| *o == op && integral(l) && !trivial(l)) { hit!(name); }
     }
-    "fractional"
+    if out.is_empty() { out.push("fractional"); }
+    out
 }
 
 fn main() {
@@ -353,6 +369,7 @@ fn main() {
     let mut canon_count: BTreeMap<&'static str, usize> = BTreeMap::new();
     let mut canon_sample: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
     let mut canon_entries: Vec<String> = Vec::new();
+    let mut tag_entries: Vec<String> = Vec::new();
     let (mut solvable, mut total) = (0usize, 0usize);
 
     for a in 1..=13i64 {
@@ -387,6 +404,9 @@ fn main() {
                             *canon_count.entry(c).or_insert(0) += 1;
                             canon_sample.entry(c).or_default().push(key.clone());
                             canon_entries.push(format!("\"{}\":\"{}\"", key, c));
+                            let tags: Vec<String> = canonical_all(cards, &mut memo, true)
+                                .iter().map(|t| format!("\"{}\"", t)).collect();
+                            tag_entries.push(format!("\"{}\":[{}]", key, tags.join(",")));
 
                             let list: Vec<String> = strats
                                 .iter()
@@ -407,6 +427,10 @@ fn main() {
     std::fs::write(
         "../web/canonical.js",
         format!("const CANONICAL = {{{}}};\n", canon_entries.join(",")),
+    ).unwrap();
+    std::fs::write(
+        "../web/strategy-tags.js",
+        format!("// Every canonical-ladder strategy that applies to each solvable set (ladder order).\nconst STRATEGY_TAGS = {{{}}};\n", tag_entries.join(",")),
     ).unwrap();
     std::fs::write(
         "../web/strategies.js",
